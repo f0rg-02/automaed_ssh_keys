@@ -1,6 +1,10 @@
 # automaed_ssh_keys
 Automate the creation of SSH keys and transfer them to the servers all from the client computer.
 
+Don't think I do anything good enough for donations, but if you would like to support me and my future work I do have a buymeacofee:
+
+<a href="https://www.buymeacoffee.com/alex_f0rg"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=alex_f0rg&button_colour=FF5F5F&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00" /></a>
+
 This tool was created to help with [automaed_ssh](https://github.com/f0rg-02/automaed_ssh) by generating the SSH keys and transfer them over to the servers so you can use Authentication via keys instead of password.
 
 You can compile this program by running:
