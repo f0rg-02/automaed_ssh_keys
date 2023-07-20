@@ -33,5 +33,5 @@ To run you just need to specify the ips, ports, and users. Port is optional and 
 ```
 I did test this on Windows against my server that I use as a lab and another Debian based distro I was using as a "client" to run automaed_ssh. The client in this case is what automaed_ssh runs on, but it is still technically a ssh server. I just did this for a single set of servers.
 
-TODO: Add an option to only add keys to server and the public key of the client to the server. Will allow to not generate new keys for the client. Might be easier to write something seperate for that?
+#### TODO: Add an option to only add keys to server and the public key of the client to the server. Will allow to not generate new keys for the client. Might be easier to write something seperate for that?
 
