@@ -20,6 +20,22 @@ import (
 	"golang.org/x/term"
 )
 
+/*
+Written by: f0rg/Alex
+Mastodon is: https://infosec.exchange/@alex_02
+Buymeacoffee: https://www.buymeacoffee.com/alex_f0rg
+
+A lot of this code I either borrowed from SO and the libraries or I 
+reused from other programs that I've written. The whole SO and library
+codes is because I would've written the exact same thing and couldn't be
+bothered to write the same code by hand. Feel free to edit it as is and reuse
+the code. I don't really care too much about getting credit since we are programmers
+and we copy each other's codes. I do wish that you don't explicity take full credit
+as being your own and if you straight up copy and paste some of this code for lets say
+your programming homework, that is on you and teachers always know when someone
+is cheating and copying code.
+*/
+
 func usage() {
 	fmt.Fprintf(os.Stderr, "Usage of %s: \n", os.Args[0])
 	fmt.Println()
@@ -74,8 +90,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Thanks I hate it
-	// Convert all *string to string
+	// Thanks. I hate it.
+	// Convert all *string to string.
 
 	// Probably a better way, but I'm tired right now.
 	client_ip_str := *client_ip
@@ -228,7 +244,7 @@ func DeleteLargeFiles(file_src string) {
 }
 
 func UploadFiles(server string, username string, password string, source_file string, destination_file string, permissions string) {
-	// Use SSH key authentication from the auth package
+	// Use SSH password authentication from the auth package
 	// we ignore the host key in this example, please change this if you use this library
 	clientConfig, _ := auth.PasswordKey(username, password, ssh.InsecureIgnoreHostKey())
 
