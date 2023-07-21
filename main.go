@@ -25,7 +25,7 @@ Written by: f0rg/Alex
 Mastodon is: https://infosec.exchange/@alex_02
 Buymeacoffee: https://www.buymeacoffee.com/alex_f0rg
 
-A lot of this code I either borrowed from SO and the libraries or I 
+A lot of this code I either borrowed from SO and the libraries or I
 reused from other programs that I've written. The whole SO and library
 codes is because I would've written the exact same thing and couldn't be
 bothered to write the same code by hand. Feel free to edit it as is and reuse
@@ -63,35 +63,136 @@ func credentials() (string, error) {
 	return strings.TrimSpace(password + "\n"), nil
 }
 
+func ParseIps(ips string) []string {
+
+	split_ips := strings.Split(ips, ",")
+	fmt.Println("Server IPs are: ", ips)
+	return split_ips
+}
+
+func ParseUser(ips []string) []string {
+	var final_string []string
+	for _, i := range ips {
+		split_str := strings.Split(i, ":")
+		final_string = append(final_string, split_str...)
+	}
+	return final_string
+}
+
+func ReadPub(pub_file string) string {
+	data, err := os.ReadFile(pub_file)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("Public key: " + string(data))
+
+	return string(data)
+}
+
+func GetPasswd(client_password string) (string, string) {
+	var err error
+	var password string
+
+	if client_password == "" {
+		password, err = credentials()
+
+		if err != nil {
+			panic(err)
+		}
+		client_password = password
+		return client_password, password
+	} else {
+		password = client_password
+		return client_password, password
+	}
+}
+
+func DeleteServerKeys() {
+	DeleteLargeFiles("id_rsa_server")
+	DeleteLargeFiles("id_rsa_server.pub")
+}
+
+func GenClientKeys() {
+	MakeSSHKeyPair("id_rsa_client.pub", "id_rsa_client")
+	client_public := ReadPub("id_rsa_client.pub")
+	fmt.Println("Client public key:", client_public)
+}
+
+func GenServerKeys() {
+	MakeSSHKeyPair("id_rsa_server.pub", "id_rsa_server")
+	server_public := ReadPub("id_rsa_server.pub")
+	fmt.Println("Server public key:", server_public)
+}
+
+func DownloadClientKeys(client_ip_str string, client_user_str string, client_port_str string, client_password string, password string) (string, string, string) {
+	var echo_client_pub string
+	// Download the file
+	source_file := ".ssh/id_rsa.pub"
+	destination_file := "id_rsa_client.pub"
+
+	// Get the password for client
+	fmt.Printf("Downloading public key from client for user %s and client ip %s\n", client_user_str, client_ip_str)
+	fmt.Printf("Getting the password for client for user %s and client ip %s\n", client_user_str, client_ip_str)
+
+	client_password, password = GetPasswd(client_password)
+
+	DownloadFiles(client_ip_str+":"+client_port_str, client_user_str, client_password, source_file, destination_file)
+	echo_client_pub = ReadPub("id_rsa_client.pub")
+
+	return echo_client_pub, client_password, password
+}
+
 func main() {
 
-	client_user := flag.String("client-user", "", "Specify client username")
-	client_ip := flag.String("client-ip", "", "Specify client ip address")
+	// TODO: Add an option and functionality whether to add the client public key from an existing key on the server and generate server keys.
 
-	server_user := flag.String("server-user", "", "Specify server username")
-	server_ip := flag.String("server-ip", "", "Specify server ip address")
+	client_user := flag.String("client-user", "", "Specify client username.")
+	client_ip := flag.String("client-ip", "", "Specify client ip address.")
 
-	client_port := flag.String("client-port", "22", "Specify client SSH port")
-	server_port := flag.String("server-port", "22", "Specify server SSH port")
+	server_user := flag.String("server-user", "", "Specify server username.")
+	server_ip := flag.String("server-ip", "", "Specify server ip address.")
+
+	client_port := flag.String("client-port", "22", "Specify client SSH port.")
+	server_port := flag.String("server-port", "22", "Specify server SSH port.")
+
+	update_server := flag.Bool("update-server", false, "Specify if the server just be updated. This avoids generating new keys for the client.")
+	server_ips := flag.String("server-ips", "", "Specify a list of servers with their usernames. Format is IP:Username,IP:Username,IP:Username,...")
+
+	generate_client_keys := flag.Bool("generate-client", false, "Specify if the client keys should be generated and uploaded.")
 
 	flag.Parse()
 
 	if !isFlagPassed("client-user") {
+		fmt.Println("Pass client username")
 		usage()
 		os.Exit(1)
 	} else if !isFlagPassed("client-ip") {
+		fmt.Println("Pass client ip")
 		usage()
 		os.Exit(1)
-	} else if !isFlagPassed("server-user") {
+	} else if !isFlagPassed("server-user") && !isFlagPassed("update-server") {
+		fmt.Println("Pass server username")
 		usage()
 		os.Exit(1)
-	} else if !isFlagPassed("server-ip") {
+	} else if !isFlagPassed("server-ip") && !isFlagPassed("update-server") {
+		fmt.Println("Pass server ip")
+		usage()
+		os.Exit(1)
+	} else if isFlagPassed("update-server") && !isFlagPassed("server-ips") {
+		fmt.Println("Pass server IPs in format: IP:Username,IP:Username,IP:Username,...")
 		usage()
 		os.Exit(1)
 	}
 
+	var ips []string
+
+	if isFlagPassed("server-ips") {
+		ips = ParseIps(*server_ips)
+		fmt.Println(ips)
+	}
+
 	// Thanks. I hate it.
-	// Convert all *string to string.
+	// Convert all *string to string
 
 	// Probably a better way, but I'm tired right now.
 	client_ip_str := *client_ip
@@ -102,18 +203,122 @@ func main() {
 	server_port_str := *server_port
 	server_user_str := *server_user
 
+	var password string
+	var client_password string
+
 	// Generate the keys
-	MakeSSHKeyPair("id_rsa_client.pub", "id_rsa_client")
-	MakeSSHKeyPair("id_rsa_server.pub", "id_rsa_server")
+	if !*update_server {
+		GenClientKeys()
+		GenServerKeys()
+		ClientSSH(client_ip_str, client_user_str, client_port_str)
+		ServerSSH(server_ip_str, server_user_str, server_port_str)
 
-	server_public := ReadPub("id_rsa_server.pub")
-	fmt.Println("Server public key:", server_public)
+		// Delete all the key files generated
+		DeleteLargeFiles("id_rsa_client")
+		DeleteLargeFiles("id_rsa_client.pub")
+		DeleteServerKeys()
+	} else {
+		//var err error
+		if *generate_client_keys {
 
-	client_public := ReadPub("id_rsa_client.pub")
-	fmt.Println("Client public key:", client_public)
+			GenClientKeys()
 
+			// Get the password for client
+			fmt.Printf("Getting the password for client for user %s and client ip %s\n", client_user_str, client_ip_str)
+			client_password, password = GetPasswd(client_password)
+
+			// Transferring the keys to the client
+			fmt.Println("\nTransferring over the client keys")
+			UploadFiles(client_ip_str+":"+client_port_str, client_user_str, password, "id_rsa_client", ".ssh/id_rsa", "0600") // Set the private key to 600
+			UploadFiles(client_ip_str+":"+client_port_str, client_user_str, password, "id_rsa_client.pub", ".ssh/id_rsa.pub", "0655")
+		}
+
+		for _, ip := range ips {
+			var echo_client_pub string
+			if *generate_client_keys {
+
+				echo_client_pub = ReadPub("id_rsa_client.pub")
+			} else {
+
+				echo_client_pub, client_password, password = DownloadClientKeys(client_ip_str, client_user_str, client_port_str, client_password, password)
+			}
+
+			server_split := strings.Split(ip, ":")
+
+			// No need for a for loop with two values.
+			fmt.Println("Server: ", server_split[0])
+			fmt.Println("User: ", server_split[1])
+
+			server_ip_str = server_split[0]
+			server_user_str = server_split[1]
+
+			GenServerKeys()
+
+			// Get the password for client
+			fmt.Printf("Getting the password for client for user %s and client ip %s\n", client_user_str, client_ip_str)
+
+			client_password, password = GetPasswd(client_password)
+
+			// Transfer the server public key
+
+			client, err := goph.New(client_user_str, client_ip_str, goph.Password(password))
+			if err != nil {
+				panic(err)
+			}
+
+			echo_server_pub := ReadPub("id_rsa_server.pub")
+
+			fmt.Println("Tranferring the server public key to the client's authorized_keys file")
+
+			ExecCmd(client, echo_server_pub)
+
+			client.Close()
+
+			// Get the password for server
+			fmt.Printf("Getting the password for server for user %s and server ip %s\n", server_user_str, server_ip_str)
+
+			password, err = credentials()
+
+			if err != nil {
+				panic(err)
+			}
+
+			// Transferring the keys to the server
+			fmt.Println("\nTransferring over the server keys")
+			UploadFiles(server_ip_str+":"+server_port_str, server_user_str, password, "id_rsa_server", ".ssh/id_rsa", "0600") // Set the private key to 600
+			UploadFiles(server_ip_str+":"+server_port_str, server_user_str, password, "id_rsa_server.pub", ".ssh/id_rsa.pub", "0655")
+
+			// Transfer the client public key
+
+			client, err = goph.New(server_user_str, server_ip_str, goph.Password(password))
+			if err != nil {
+				panic(err)
+			}
+
+			fmt.Println("Tranferring the client public key to the server's authorized_keys file")
+
+			ExecCmd(client, echo_client_pub)
+
+			client.Close()
+			password = client_password // So we don't end up with the server's password. Should just use a different variable.
+
+			// Delete current server rsa keys before returning to for loop.
+			DeleteServerKeys()
+		}
+
+		// Delete current client keys.
+		if *generate_client_keys {
+			DeleteLargeFiles("id_rsa_client")
+		}
+		DeleteLargeFiles("id_rsa_client.pub")
+	}
+	fmt.Println("Done! Double check manually by trying to connect to the ssh server as the user.")
+	fmt.Println("If no password prompt is shown and you go directly to the shell, everything is working correctly.")
+}
+
+func ClientSSH(client_ip_str string, client_user_str string, client_port_str string) {
 	// Get the password for client
-	fmt.Printf("Getting the password for client for user %s and client ip %s", client_user_str, client_ip_str)
+	fmt.Printf("Getting the password for client for user %s and client ip %s\n", client_user_str, client_ip_str)
 
 	password, err := credentials()
 
@@ -136,26 +341,17 @@ func main() {
 	echo_server_pub := ReadPub("id_rsa_server.pub")
 
 	fmt.Println("Tranferring the server public key to the client's authorized_keys file")
-
-	// Execute your command.
-	// Have to do echo 'public_key' >> authorized_keys or else the file will be blank
-	out, err := client.Run("echo '" + echo_server_pub + "' >> $HOME/.ssh/authorized_keys")
-
-	if err != nil {
-		panic(err)
-	}
-
-	// Get your output as []byte.
-	fmt.Println(string(out))
-
-	if err != nil {
-		panic(err)
-	}
+	ExecCmd(client, echo_server_pub)
 
 	client.Close()
+}
+
+func ServerSSH(server_ip_str string, server_user_str string, server_port_str string) {
+	var password string
+	var err error
 
 	// Get the password for server
-	fmt.Printf("Getting the password for server for user %s and server ip %s", server_user_str, server_ip_str)
+	fmt.Printf("Getting the password for server for user %s and server ip %s\n", server_user_str, server_ip_str)
 
 	password, err = credentials()
 
@@ -170,7 +366,7 @@ func main() {
 
 	// Transfer the client public key
 
-	client, err = goph.New(server_user_str, server_ip_str, goph.Password(password))
+	client, err := goph.New(server_user_str, server_ip_str, goph.Password(password))
 	if err != nil {
 		panic(err)
 	}
@@ -178,10 +374,17 @@ func main() {
 	echo_client_pub := ReadPub("id_rsa_client.pub")
 
 	fmt.Println("Tranferring the client public key to the server's authorized_keys file")
+	ExecCmd(client, echo_client_pub)
+	client.Close()
 
+}
+
+func ExecCmd(client *goph.Client, echo_pub string) {
+	var out []byte
+	var err error
 	// Execute your command.
 	// Have to do echo 'public_key' >> authorized_keys or else the file will be blank
-	out, err = client.Run("echo '" + echo_client_pub + "' >> $HOME/.ssh/authorized_keys")
+	out, err = client.Run("echo '" + echo_pub + "' >> $HOME/.ssh/authorized_keys")
 
 	if err != nil {
 		panic(err)
@@ -189,14 +392,6 @@ func main() {
 
 	// Get your output as []byte.
 	fmt.Println(string(out))
-
-	client.Close()
-
-	// Delete all the key files generated
-	DeleteLargeFiles("id_rsa_client")
-	DeleteLargeFiles("id_rsa_server")
-	DeleteLargeFiles("id_rsa_client.pub")
-	DeleteLargeFiles("id_rsa_server.pub")
 }
 
 func DeleteLargeFiles(file_src string) {
@@ -243,8 +438,45 @@ func DeleteLargeFiles(file_src string) {
 	os.Remove(targetFile)
 }
 
+func DownloadFiles(server string, username string, password string, source_file string, destination_file string) {
+	// Use SSH key authentication from the auth package
+	// we ignore the host key in this example, please change this if you use this library
+	clientConfig, _ := auth.PasswordKey(username, password, ssh.InsecureIgnoreHostKey())
+
+	// For other authentication methods see ssh.ClientConfig and ssh.AuthMethod
+
+	// Create a new SCP client
+	client := scp.NewClient(server, &clientConfig)
+
+	// Connect to the remote server
+	err := client.Connect()
+	if err != nil {
+		fmt.Println("Couldn't establish a connection to the remote server ", err)
+		return
+	}
+
+	// Open a file
+	f, _ := os.OpenFile(destination_file, os.O_RDWR|os.O_CREATE, 0777)
+
+	// Close client connection after the file has been copied
+	defer client.Close()
+
+	// Close the file after it has been copied
+	defer f.Close()
+
+	// Finaly, copy the file over
+	// Usage: CopyFromFile(context, file, remotePath, permission)
+
+	// the context can be adjusted to provide time-outs or inherit from other contexts if this is embedded in a larger application.
+	err = client.CopyFromRemote(context.Background(), f, source_file)
+
+	if err != nil {
+		fmt.Println("\nError while downloading file: ", err)
+	}
+}
+
 func UploadFiles(server string, username string, password string, source_file string, destination_file string, permissions string) {
-	// Use SSH password authentication from the auth package
+	// Use SSH key authentication from the auth package
 	// we ignore the host key in this example, please change this if you use this library
 	clientConfig, _ := auth.PasswordKey(username, password, ssh.InsecureIgnoreHostKey())
 
@@ -278,16 +510,6 @@ func UploadFiles(server string, username string, password string, source_file st
 	if err != nil {
 		fmt.Println("Error while copying file ", err)
 	}
-}
-
-func ReadPub(pub_file string) string {
-	data, err := os.ReadFile(pub_file)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("Public key: " + string(data))
-
-	return string(data)
 }
 
 // MakeSSHKeyPair make a pair of public and private keys for SSH access.
