@@ -1,5 +1,5 @@
 # automaed_ssh_keys
-Automate the creation of SSH keys and transfer them to the servers all from the client computer.
+Automate the creation of SSH keys and transfer them to the servers all from the client computer. Please report any issues or problems you find in my golang code. I am not the best programmer.
 
 Don't think I do anything good enough for donations, but if you would like to support me and my future work I do have a buymeacofee:
 
@@ -18,24 +18,38 @@ Usage is:
 Usage of .\auto_ssh_keys.exe: 
 
   -client-ip string
-        Specify client ip address
+        Specify client ip address.
   -client-port string
-        Specify client SSH port (default "22")
+        Specify client SSH port. (default "22")
   -client-user string
-        Specify client username
+        Specify client username.
+  -generate-client
+        Specify if the client keys should be generated and uploaded.
   -server-ip string
-        Specify server ip address
+        Specify server ip address.
+  -server-ips string
+        Specify a list of servers with their usernames. Format is IP:Username,IP:Username,IP:Username,...   
   -server-port string
-        Specify server SSH port (default "22")
+        Specify server SSH port. (default "22")
   -server-user string
-        Specify server username
+        Specify server username.
+  -update-server
+        Specify if the server just be updated. This avoids generating new keys for the client.
+
 ```
 
-To run you just need to specify the ips, ports, and users. Port is optional and defaults to 22.
+To run for single client and server you just need to specify the ips, ports, and users. Port is optional and defaults to 22.
 ```
 .\auto_ssh_keys.exe -client-ip <ip of client> -client-user <user ssh should connect as> -server-ip <ip of server> -server-user <user ssh should connect as>
 ```
+
+To run for multiple server ips you have several flag options. Required are client ip and user, and server ip(s) in format IP:Username. `-update-server` must be set to true for this to work.
+```
+.\auto_ssh_keys.exe -client-ip <ip of client> -client-user <username of client> -server-ips IP:Username,IP:Username,... -generate-client=true/false -update-server=true/false
+```
+
+`-generate-client` and `-update-server` defaults to false.
+
+`-generate-client` is for if you would rather generate the client ssh keys and transfer them to the client or if you want to download prexisting public key from client to add to server's authorized keys.
+
 I did test this on Windows against my server that I use as a lab and another Debian based distro in a VM which I was using as a "client" to run automaed_ssh. The client in this case is what automaed_ssh runs on, but it is still technically a ssh server. I just did this for a single set of servers.
-
-#### TODO: Add an option to only add keys to server and the public key of the client to the server. Will allow to not generate new keys for the client. Might be easier to write something seperate for that?
-
