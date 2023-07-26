@@ -8,6 +8,7 @@ import (
 	"encoding/pem"
 	"flag"
 	"fmt"
+	"log"
 	"math"
 	"os"
 	"strings"
@@ -82,7 +83,7 @@ func ParseUser(ips []string) []string {
 func ReadPub(pub_file string) string {
 	data, err := os.ReadFile(pub_file)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	fmt.Println("Public key: " + string(data))
 
@@ -97,7 +98,7 @@ func GetPasswd(client_password string) (string, string) {
 		password, err = credentials()
 
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 		client_password = password
 		return client_password, password
@@ -263,7 +264,7 @@ func main() {
 
 			client, err := goph.New(client_user_str, client_ip_str, goph.Password(password))
 			if err != nil {
-				panic(err)
+				log.Fatal(err)
 			}
 
 			echo_server_pub := ReadPub("id_rsa_server.pub")
@@ -280,7 +281,7 @@ func main() {
 			password, err = credentials()
 
 			if err != nil {
-				panic(err)
+				log.Fatal(err)
 			}
 
 			// Transferring the keys to the server
@@ -292,7 +293,7 @@ func main() {
 
 			client, err = goph.New(server_user_str, server_ip_str, goph.Password(password))
 			if err != nil {
-				panic(err)
+				log.Fatal(err)
 			}
 
 			fmt.Println("Tranferring the client public key to the server's authorized_keys file")
@@ -323,7 +324,7 @@ func ClientSSH(client_ip_str string, client_user_str string, client_port_str str
 	password, err := credentials()
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	// Transferring the keys to the client
@@ -335,7 +336,7 @@ func ClientSSH(client_ip_str string, client_user_str string, client_port_str str
 
 	client, err := goph.New(client_user_str, client_ip_str, goph.Password(password))
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	echo_server_pub := ReadPub("id_rsa_server.pub")
@@ -356,7 +357,7 @@ func ServerSSH(server_ip_str string, server_user_str string, server_port_str str
 	password, err = credentials()
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	// Transferring the keys to the server
@@ -368,7 +369,7 @@ func ServerSSH(server_ip_str string, server_user_str string, server_port_str str
 
 	client, err := goph.New(server_user_str, server_ip_str, goph.Password(password))
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	echo_client_pub := ReadPub("id_rsa_client.pub")
@@ -387,7 +388,7 @@ func ExecCmd(client *goph.Client, echo_pub string) {
 	out, err = client.Run("echo '" + echo_pub + "' >> $HOME/.ssh/authorized_keys")
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	// Get your output as []byte.
@@ -451,8 +452,7 @@ func DownloadFiles(server string, username string, password string, source_file 
 	// Connect to the remote server
 	err := client.Connect()
 	if err != nil {
-		fmt.Println("Couldn't establish a connection to the remote server ", err)
-		return
+		log.Fatal(err)
 	}
 
 	// Open a file
@@ -471,7 +471,7 @@ func DownloadFiles(server string, username string, password string, source_file 
 	err = client.CopyFromRemote(context.Background(), f, source_file)
 
 	if err != nil {
-		fmt.Println("\nError while downloading file: ", err)
+		log.Fatal(err)
 	}
 }
 
@@ -488,8 +488,7 @@ func UploadFiles(server string, username string, password string, source_file st
 	// Connect to the remote server
 	err := client.Connect()
 	if err != nil {
-		fmt.Println("Couldn't establish a connection to the remote server ", err)
-		return
+		log.Fatal(err)
 	}
 
 	// Open a file
@@ -508,7 +507,7 @@ func UploadFiles(server string, username string, password string, source_file st
 	err = client.CopyFromFile(context.Background(), *f, destination_file, permissions)
 
 	if err != nil {
-		fmt.Println("Error while copying file ", err)
+		log.Fatal(err)
 	}
 }
 
