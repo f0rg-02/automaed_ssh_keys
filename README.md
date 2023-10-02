@@ -53,5 +53,3 @@ To run for multiple server ips you have several flag options. Required are clien
 `-generate-client` is for if you would rather generate the client ssh keys and transfer them to the client or if you want to download prexisting public key from client to add to server's authorized keys.
 
 I did test this on Windows against my server that I use as a lab and another Debian based distro in a VM which I was using as a "client" to run automaed_ssh. The client in this case is what automaed_ssh runs on, but it is still technically a ssh server.
-
-#### TODO: Add the ability to add new host to known_hosts file or whatever it is called
